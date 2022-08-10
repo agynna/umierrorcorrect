@@ -96,10 +96,11 @@ def get_sample_name(bamfile):
     sample_name = sample_name.replace('.bam','')
     return(sample_name)
 
-def write_to_json(cons_read):
+def write_to_json(cons_read, annotations):
     outdict={}
     outdict['Name']=cons_read.name
     outdict['Consensus']=cons_read.seq
+    outdict['Annotation']=annotations[0][2]
     outdict['Members']=dict(cons_read.json)
     return(outdict)
 
@@ -146,7 +147,7 @@ def cluster_consensus_worker(args):
         outputlist=[]
         for cons_read in consensus_seq.values():
             if cons_read:
-                outputlist.append(write_to_json(cons_read))
+                outputlist.append(write_to_json(cons_read, annotations))
         json_object=json.dumps(outputlist)
         with open(json_filename,'w') as f:
             f.write(json_object)
@@ -210,6 +211,19 @@ def merge_cons(output_path, consfilelist, sample_name):
                     g.write(line)
 
     for filename in consfilelist:
+        os.remove(filename)
+
+def merge_json(output_path, jsonfilelist, sample_name):
+    '''Merge all JSON files for in jsonfilelist, and remove temporary files'''
+    merged_list = list()
+    for filename in jsonfilelist: 
+        with open(filename) as infile: 
+            merged_list.extend(json.load(infile))
+
+    with open(output_path + '/' + sample_name + '_umi_families.json', 'w') as outfile:
+        json.dump(merged_list, outfile)
+
+    for filename in jsonfilelist:
         os.remove(filename)
 
 def check_duplicate_positions(cons_file):
@@ -480,7 +494,6 @@ def cluster_umis_all_regions(regions, ends, edit_distance_threshold, samplename,
                     i += 1
 
     p = Pool(int(num_cpus))
-    
     p.map(cluster_consensus_worker, argvec)
     return(bamfilelist)
 
@@ -587,6 +600,9 @@ def run_umi_errorcorrect(args):
               num_cpus)
     consfilelist = [x.rstrip('.bam') + '.cons' for x in bamfilelist]
     merge_cons(args.output_path, consfilelist, args.sample_name)
+    if args.output_json:
+        jsonfilelist = [x.rstrip('.bam') + '.json' for x in bamfilelist]
+        merge_json(args.output_path, jsonfilelist, args.sample_name)
     cons_file = args.output_path + '/' + args.sample_name + '_cons.tsv'
     if args.remove_large_files:
         os.remove(args.output_path+'/' +args.bam_file)

@@ -110,7 +110,7 @@ def run_pigz(filename, num_threads, program):
     if program=='pigz':
         command = ['pigz', '-p', num_threads, filename]
     elif program=='gzip':
-        command = ['gzip', filename]
+        command = ['gzip', '-f', filename]
     p = subprocess.Popen(command, stdout=subprocess.PIPE)
     p.communicate()
     p.wait()
