@@ -59,9 +59,8 @@ def parseArgs():
     parser.add_argument('-cons_freq', '--consensus_frequency_threshold', dest='consensus_frequency_threshold', 
                         help='Minimum percent of the majority base at a position for consensus to be called. \
                               [default = %(default)s]', default=60.0)
-
     parser.add_argument('-indel_freq', '--indel_frequency_threshold', dest='indel_frequency_threshold', 
-                        help='Percent threshold for indels to be included in the consensus read. \
+                        help='Percent threshold for indels to be included in the consensus read. Only used for "position" method. \
                         [default = %(default)s]', default=60.0)
     parser.add_argument('-singletons', '--include_singletons', dest='include_singletons', action='store_true', 
                         help='Include this flag if singleton reads should be included in the output consensus \
@@ -96,11 +95,12 @@ def get_sample_name(bamfile):
     sample_name = sample_name.replace('.bam','')
     return(sample_name)
 
-def write_to_json(cons_read, annotations):
+def write_to_json(cons_read, contig, annotations):
     outdict={}
     outdict['Name']=cons_read.name
     outdict['Consensus']=cons_read.seq
-    outdict['Annotation']=annotations[0][2]
+    outdict['Contig']=contig
+    outdict['Annotation']=annotations[0]
     outdict['Members']=dict(cons_read.json)
     return(outdict)
 
@@ -147,7 +147,7 @@ def cluster_consensus_worker(args):
         outputlist=[]
         for cons_read in consensus_seq.values():
             if cons_read:
-                outputlist.append(write_to_json(cons_read, annotations))
+                outputlist.append(write_to_json(cons_read, contig, annotations))
         json_object=json.dumps(outputlist)
         with open(json_filename,'w') as f:
             f.write(json_object)
